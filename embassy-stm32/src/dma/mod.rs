@@ -109,7 +109,10 @@ pub(crate) mod sealed {
         fn is_running(&self) -> bool;
 
         /// Returns the total number of remaining transfers.
-        fn remaining_transfers(&mut self) -> u16;
+        fn remaining_transfers(&self) -> u16;
+
+        fn get_tcif(&self) -> bool;
+        fn clear_tcif(&mut self);
 
         /// Sets the waker that is called when this channel stops (either completed or manually stopped)
         fn set_waker(&mut self, waker: &Waker);
@@ -195,6 +198,8 @@ pub struct TransferOptions {
     pub mburst: Burst,
     /// Flow control configuration
     pub flow_ctrl: FlowControl,
+    pub circ: bool,
+    pub tcie: bool,
 }
 
 impl Default for TransferOptions {
@@ -203,6 +208,8 @@ impl Default for TransferOptions {
             pburst: Burst::Single,
             mburst: Burst::Single,
             flow_ctrl: FlowControl::Dma,
+            circ: false,
+            tcie: true,
         }
     }
 }

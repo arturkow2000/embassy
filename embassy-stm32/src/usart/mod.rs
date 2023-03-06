@@ -19,6 +19,9 @@ use crate::pac::usart::{regs, vals, Usart as Regs};
 use crate::time::Hertz;
 use crate::{peripherals, Peripheral};
 
+mod dma_ringbuffer;
+pub mod rx_ringbuffered;
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum DataBits {
     DataBits8,
@@ -320,6 +323,10 @@ impl<'d, T: BasicInstance, RxDma> UartRx<'d, T, RxDma> {
                     w.set_dmar(false);
                 });
             }
+            compiler_fence(Ordering::SeqCst);
+
+            s.rx_waker.wake();
+        } else if cr1.rxneie() {
             compiler_fence(Ordering::SeqCst);
 
             s.rx_waker.wake();

@@ -150,8 +150,16 @@ foreach_dma_channel! {
             fn is_running(&self) -> bool {
                 unsafe {low_level_api::is_running(pac::$dma_peri, $channel_num)}
             }
-            fn remaining_transfers(&mut self) -> u16 {
+            fn remaining_transfers(&self) -> u16 {
                 unsafe {low_level_api::get_remaining_transfers(pac::$dma_peri, $channel_num)}
+            }
+
+            fn get_tcif(&self) -> bool {
+                unsafe {low_level_api::get_tcif(pac::$dma_peri, $channel_num)}
+            }
+
+            fn clear_tcif(&mut self) {
+                unsafe {low_level_api::clear_tcif(pac::$dma_peri, $channel_num);}
             }
 
             fn set_waker(&mut self, waker: &Waker) {
@@ -219,8 +227,13 @@ mod low_level_api {
             }
             w.set_dir(dir);
             w.set_teie(true);
-            w.set_tcie(true);
+            w.set_tcie(options.tcie);
             w.set_en(true);
+            w.set_circ(if options.circ {
+                vals::Circ::ENABLED
+            } else {
+                vals::Circ::DISABLED
+            });
         });
     }
 
@@ -248,6 +261,17 @@ mod low_level_api {
         let ch = dma.ch(ch as _);
         // read the remaining transfer count. If this is zero, the transfer completed fully.
         ch.ndtr().read().ndt() as u16
+    }
+
+    pub unsafe fn get_tcif(dma: pac::bdma::Dma, channel_num: u8) -> bool {
+        let channel_num = channel_num as usize;
+        let isr = dma.isr().read();
+        isr.tcif(channel_num)
+    }
+
+    pub unsafe fn clear_tcif(dma: pac::bdma::Dma, channel_num: u8) {
+        let channel_num = channel_num as usize;
+        dma.ifcr().write(|w| w.set_tcif(channel_num, true));
     }
 
     /// Sets the waker for the specified DMA channel
